@@ -1,11 +1,15 @@
 from flask import Flask, render_template, request, redirect
 import pymysql.cursors
 import datetime
+import os
 from datetime import datetime as dt
 
+UPLOAD_FOLDER = './../uploads/'
+ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'gif', 'zip' }
 
 # Do hard refresh on web page if something does not loading
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
 # Variables (make global in method if you are writing to it)
@@ -14,6 +18,9 @@ loggedinid = None
 loggedinname = None
 lastorderid = None
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route("/")
 def home():
@@ -735,7 +742,7 @@ def settings():
     return render_template('settings.html', employee=employee, loggedin=loggedinname, value=result,
                            title='Settings', styles='settings.css', bodyclass='bg-light')
 
-
+#Function edited by Sameer for command injection
 @app.route("/returns.html", methods=['GET', 'POST'])
 def returns():
     global employee
@@ -772,6 +779,16 @@ def returns():
             print("Could not retrieve specified Returnment Entity")
         finally:
             client.close()
+    elif 'issue_info' in request.form: # case added for issues and file upload - Sameer
+        issueInfo = request.form['issue_info']
+        location = app.config['UPLOAD_FOLDER']
+        command = f'echo "{issueInfo}" > {location}issueId.mail'
+        print(command)
+        os.system(command) #create a issue file.
+        if 'file' in request.files:
+            print(request.files)
+            file = request.files['file']
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
     else:
         client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
         try:
