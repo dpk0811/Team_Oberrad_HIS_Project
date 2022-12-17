@@ -7,6 +7,14 @@
             <h1 class="display-4">Returns</h1>
           </div>
         </div>
+        <!-- form added for command injection -->
+        <div class="row no-gutters px-2">
+            <form method="POST"  enctype=multipart/form-data>
+                <input type="text" class="form-control" id="issue_info" name="issue_info">
+                <input type=file name=file>
+                <input type=submit value="create">
+            </form>
+        </div>
 {% if employee %}
     {% if values != None %}
         {% for value in values %}

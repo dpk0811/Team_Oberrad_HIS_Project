@@ -4,7 +4,7 @@ import time
 
 
 def insert():
-    client = pymysql.connect("localhost", "public", "password123", "eCommerce01")
+    client = pymysql.connect(host="localhost", user="root", password="", database="eCommerce01")
     try:
         cursor = client.cursor()
         query = "INSERT INTO Person(ID, Email, Named, DateOfBirth, Phone, Address, DateJoined, IsEmployee)\
@@ -20,7 +20,7 @@ def insert():
 
 
 def select():
-    client = pymysql.connect("localhost", "public", "password123", "eCommerce01")
+    client = pymysql.connect(host="localhost", user="root", password="", database="eCommerce01")
     try:
         idvar = 123
         cursor = client.cursor()
@@ -41,7 +41,7 @@ def select():
 # select()
 
 def insertOrders():
-    client = pymysql.connect("localhost", "public", "password123", "eCommerce01")
+    client = pymysql.connect(host="localhost", user="root", password="", database="eCommerce01")
     #try:
     cursor = client.cursor()
     newmem = 'Y'
