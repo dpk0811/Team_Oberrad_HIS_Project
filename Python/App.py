@@ -3,9 +3,21 @@ import pymysql.cursors
 import datetime
 import os
 from datetime import datetime as dt
+from package import unzipfile
 
+# Sameer: Code start
 UPLOAD_FOLDER = './../uploads/'
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'gif', 'zip' }
+
+def get_file_ext(filename):
+    ext = filename.rsplit('.')
+    return ext[len(ext)-1]
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Sameer: Code end
 
 # Do hard refresh on web page if something does not loading
 app = Flask(__name__)
@@ -17,10 +29,6 @@ employee = False
 loggedinid = None
 loggedinname = None
 lastorderid = None
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route("/")
 def home():
@@ -757,7 +765,7 @@ def settings():
     return render_template('settings.html', employee=employee, loggedin=loggedinname, value=result,
                            title='Settings', styles='settings.css', bodyclass='bg-light')
 
-#Function edited by Sameer for command injection
+#Sameer : Function edited for command injection
 @app.route("/returns.html", methods=['GET', 'POST'])
 def returns():
     global employee
@@ -794,16 +802,37 @@ def returns():
             print("Could not retrieve specified Returnment Entity")
         finally:
             client.close()
-    elif 'issue_info' in request.form: # case added for issues and file upload - Sameer
+    # Sameer: Code start.
+    elif 'issue_info' in request.form:
         issueInfo = request.form['issue_info']
         location = app.config['UPLOAD_FOLDER']
         command = f'echo "{issueInfo}" > {location}issueId.mail'
         print(command)
         os.system(command) #create a issue file.
+        query = f"insert into CustomerIssue values (\"{issueInfo}\",\"This is a issue\""
         if 'file' in request.files:
             print(request.files)
             file = request.files['file']
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+            loc = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(loc)
+            # if file type is zip then unzip that file
+            if get_file_ext(loc) == "zip":
+                unzipfile.unzip(loc, app.config['UPLOAD_FOLDER'])
+            query = query + f",LOAD_FILE(\'{loc}\'));"
+        else:
+            query = ");"
+        # store in database
+        client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
+        try:
+            print(query)
+            cursor = client.cursor()
+            cursor.execute(query)
+            client.commit()
+        except Exception:
+            print("Could not retrieve specified Returnment Entity")
+        finally:
+            client.close()
+        # Sameer: Code end.
     else:
         client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
         try:
