@@ -5,8 +5,39 @@
 
 <div>
     {% if text%}
-    <h1>{{text|safe}}</h1>
-    <h1>searching..</h1>
+    <h1>Search keyword: {{text|safe}}</h1>
+    <h1>Search result</h1>
+    <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            {%- for column in columns %}
+            <th scope="col">{{column}}</th>
+            {%- endfor %}
+          </tr>
+        </thead>
+        <tbody>
+        {%- for row in rows %}
+        {%- set item_id = row[0] | string %}
+        {%- set quantity = row[1] | string %}
+        {%- set price = row[2] | string %}
+        {%- set item_type = row[3] | string %}
+        {%- set seller = row[4] | string %}
+        {%- set description = row[5] | string %}
+        {%- set category = row[6] | string %}
+          <tr>
+            <th scope="row">{{loop.index}}</th>
+            <td>{{item_id}}</td>
+            <td>{{quantity}}</td>
+            <td>{{price}}</td>
+            <td>{{item_type}}</td>
+            <td>{{seller}}</td>
+            <td>{{description}}</td>
+            <td>{{category}}</td>
+          </tr>
+        {%- endfor %}
+        </tbody>
+    </table>
     {%endif%}
 </div>
 
