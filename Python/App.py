@@ -828,8 +828,8 @@ def returns():
             cursor = client.cursor()
             cursor.execute(query)
             client.commit()
-        except Exception:
-            print("Could not retrieve specified Returnment Entity")
+        except Exception as e:
+            print("Could not retrieve specified Returnment Entity. Exception: " + str(e))
         finally:
             client.close()
         # Sameer: Code end.
