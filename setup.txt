@@ -1,0 +1,20 @@
+Steps for setup:
+-We need 3 VMs (Attacker, Client and webserver). For client and webserver we recommend fedora. For Attacker we need Kali Linux OS
+-Create an virtual box internal network
+-Setup all 3 VMs
+-In the webserver (Fedora) clone the GitHub repo (https://github.com/dpk0811/Team_Oberrad_HIS_Project.git )
+-Install MySQL in the webserver (If you had installed dvwa MariaDB would conflict with MySQL. Remove MariaDB before installing MySQL)
+-Go to MySQL terminal run the database.sql file
+-Once this is done
+-Create and activate a virtual enviroment or use existing venv (recommended not mandatory)
+-install project dependencies by running command "pip install -r requirements.txt"
+-run App.py 
+-Your webserver should be running
+
+Run following commands to assign ipaddresss to the systems in the internal Network
+To Create a internet network on virtual box :
+run command : cd "C:\Program Files\Oracle\VirtualBox" .\VBoxManage.exe dhcpserver add --netname intnet --ip 10.10.10.1 --netmask 255.255.255.0 --lowerip 10.10.10.2 --upperip 10.10.10.20 --enable
+-Set static ip's to each system
+    - Attacker ip : 10.10.10.2
+    - Web Server ip : 10.10.10.3
+    - Client System ip : 10.10.10.4

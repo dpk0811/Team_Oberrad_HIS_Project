@@ -13,7 +13,7 @@ int main(void){
     int sockt = socket(AF_INET, SOCK_STREAM, 0);
     revsockaddr.sin_family = AF_INET;       
     revsockaddr.sin_port = htons(port);
-    revsockaddr.sin_addr.s_addr = inet_addr("172.19.51.168");
+    revsockaddr.sin_addr.s_addr = inet_addr("10.10.10.2");
 
     connect(sockt, (struct sockaddr *) &revsockaddr, 
     sizeof(revsockaddr));
