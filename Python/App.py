@@ -533,6 +533,18 @@ def history():
             itemid = request.form['item']
             orderid = request.form['order']
             comments = request.form['comments']
+            print(request.files)
+            # Sameer: Code start.
+            if 'file' in request.files:
+                print(request.files)
+                file = request.files['file']
+                loc = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+                file.save(loc)
+                # if file type is zip then unzip that file
+                if get_file_ext(loc) == "zip":
+                    unzipfile.unzip(loc, app.config['UPLOAD_FOLDER'])
+                    query = query + f",LOAD_FILE(\'{loc}\'));"
+            # Sameer: code end.
             order = getOrderedItemsTuple(orderid, itemid)
             quantity = order[0][2]
             insertReturnment(orderid, itemid, quantity, comments)
