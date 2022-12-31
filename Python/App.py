@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, send_file, send_from_directory, url_for
 import pymysql.cursors
 import datetime
 import os
@@ -6,7 +6,8 @@ from datetime import datetime as dt
 from package import unzipfile
 
 # Sameer: Code start
-UPLOAD_FOLDER = './../uploads/'
+UPLOAD_FOLDER = 'static/uploads/'
+USERDATA_FOLDER = 'static/UserData/'
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'gif', 'zip' }
 
 def get_file_ext(filename):
@@ -22,6 +23,7 @@ def allowed_file(filename):
 # Do hard refresh on web page if something does not loading
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['USERDATA_FOLDER'] = USERDATA_FOLDER
 
 
 # Variables (make global in method if you are writing to it)
@@ -539,11 +541,11 @@ def history():
                 print(request.files)
                 file = request.files['file']
                 loc = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-                file.save(loc)
-                # if file type is zip then unzip that file
-                if get_file_ext(loc) == "zip":
-                    unzipfile.unzip(loc, app.config['UPLOAD_FOLDER'])
-                    query = query + f",LOAD_FILE(\'{loc}\'));"
+                file.save(loc) #download file temp
+                # santization routine
+                # after some work we want to move it to user data folder
+                # no direct use input is involved but still it will can cause 
+                os.system(f"mv {loc} static/UserData/{orderid}.png") 
             # Sameer: code end.
             order = getOrderedItemsTuple(orderid, itemid)
             quantity = order[0][2]
@@ -777,6 +779,12 @@ def settings():
     return render_template('settings.html', employee=employee, loggedin=loggedinname, value=result,
                            title='Settings', styles='settings.css', bodyclass='bg-light')
 
+@app.route('/uploads/<path:filename>')
+def download(filename):
+    print('display_image filename: ' + filename)
+    print('display_image filename: ' + app.config['USERDATA_FOLDER'])
+    return send_from_directory('static/', filename, as_attachment=True)
+
 #Sameer : Function edited for command injection
 @app.route("/returns.html", methods=['GET', 'POST'])
 def returns():
@@ -849,7 +857,7 @@ def returns():
         client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
         try:
             cursor = client.cursor()
-            query = "SELECT R.OrderID, R.ItemID, R.Quantity, R.Comments, I.ItemType, I.Price, R.Approval, O.OrderDate " \
+            query = "SELECT R.OrderID, R.ItemID, R.Quantity, R.Comments, I.ItemType, I.Price, R.Approval, O.OrderDate, R.return_pic " \
                     "FROM Returnment R, Orders O, Item I " \
                     "WHERE O.OrderNum = R.OrderID AND O.CustomerID = %s AND I.ItemID = R.ItemID"
             cursor.execute(query, loggedinid)
@@ -859,7 +867,7 @@ def returns():
             print("Could not retrieve specified Returnment Entity")
         finally:
             client.close()
-    return render_template('returns.html', employee=employee, values=result, loggedin=loggedinname, title='Returns', styles='returns.css', bodyclass='bg-light')
+    return render_template('returns.html', employee=employee, values=result, issue_img='/UserData/21344.png', loggedin=loggedinname, title='Returns', styles='returns.css', bodyclass='bg-light')
 
 
 @app.route("/thankyou.html")
