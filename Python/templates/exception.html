@@ -1,0 +1,13 @@
+{% extends "layouts.html" %}
+{% from "macros.html" import nav with context %}
+{% block content %}
+{{ nav('shop') }}
+
+<div>
+    {% if text%}
+    <h1>Sorry for the exception</h1>
+    <h2>{{text|safe}}</h2>
+    {%endif%}
+</div>
+
+{% endblock content %}  

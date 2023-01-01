@@ -393,12 +393,17 @@ def shop():
         elif 'search' in request.form:
             searchText = request.form['text_search']
             print(searchText)
-            client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
-            cursor = client.cursor()
-            query_search_string = "%" + searchText + "%"
-            cursor.execute("SELECT * FROM Item WHERE ItemType LIKE '%s'" % (query_search_string))
-            search_results = cursor.fetchall()
-            client.close()
+            try:
+                client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
+                cursor = client.cursor()
+                query_search_string = "%" + searchText + "%"
+                cursor.execute("SELECT * FROM Item WHERE ItemType LIKE '%s'" % (query_search_string))
+                search_results = cursor.fetchall()
+            except pymysql.Error as e:
+                error_message = "Error " + str(e.args[0]) + ": " + e.args[1]
+                return render_template('exception.html', text=error_message, employee=employee, loggedin=loggedinname)
+            finally:
+                client.close()
             columns = ["Id", "Available Quantity", "Price", "Item Type", "Seller", "Description", "Category"]
             return render_template('search_result.html', text = searchText, employee=employee, loggedin=loggedinname,
                                    rows=search_results, columns=columns)
