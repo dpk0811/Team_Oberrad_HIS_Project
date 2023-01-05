@@ -142,6 +142,7 @@ CREATE TABLE Returnment (
     Quantity INT,
     Comments VARCHAR(200) NOT NULL,
     Approval CHAR(1),
+    RETURN_PIC VARCHAR(150),
     PRIMARY KEY (OrderID , ItemID),
     FOREIGN KEY (OrderID)
         REFERENCES OrderedItems (OrderID)

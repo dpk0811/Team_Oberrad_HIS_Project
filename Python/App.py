@@ -6,8 +6,8 @@ from datetime import datetime as dt
 from package import unzipfile
 
 # Sameer: Code start
-UPLOAD_FOLDER = 'static/uploads/'
-USERDATA_FOLDER = 'static/UserData/'
+UPLOAD_FOLDER = '/var/www/html/flaskapp/static/uploads/'
+USERDATA_FOLDER = '/var/www/html/flaskapp/static/UserData/'
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'gif', 'zip' }
 
 def get_file_ext(filename):
@@ -545,7 +545,7 @@ def history():
                 # santization routine
                 # after some work we want to move it to user data folder
                 # no direct use input is involved but still it will can cause 
-                os.system(f"mv {loc} static/UserData/{orderid}.png") 
+                os.system(f"mv {loc} {app.config['USERDATA_FOLDER']}/{orderid}.png") 
             # Sameer: code end.
             order = getOrderedItemsTuple(orderid, itemid)
             quantity = order[0][2]
