@@ -23,6 +23,16 @@ def allowed_file(filename):
 
 # Sameer: Code end
 
+def get_file_ext(filename):
+    ext = filename.rsplit('.')
+    return ext[len(ext)-1]
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Sameer: Code end
+
 # Do hard refresh on web page if something does not loading
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
