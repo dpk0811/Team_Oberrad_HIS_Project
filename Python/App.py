@@ -11,7 +11,7 @@ logging.basicConfig(filename='/var/www/html/rtgshop/logs/app.log', filemode='w')
 # Sameer: Code start
 UPLOAD_FOLDER = '/var/www/html/rtgshop/static/uploads/'
 USERDATA_FOLDER = '/var/www/html/rtgshop/static/UserData/'
-ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'gif', 'zip' }
+ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'zip' }
 
 def get_file_ext(filename):
     ext = filename.rsplit('.')
@@ -540,7 +540,7 @@ def history():
             comments = request.form['comments']
             logging.info(request.files)
             # Sameer: Code start.
-            if 'file' in request.files:
+            if 'file' in request.files and len(request.files['file'].filename) != 0:
                 logging.info(request.files)
                 file = request.files['file']
                 loc = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
