@@ -548,17 +548,22 @@ def history():
             itemid = request.form['item']
             orderid = request.form['order']
             comments = request.form['comments']
-            logging.info(request.files)
             # Sameer: Code start.
             if 'file' in request.files and len(request.files['file'].filename) != 0:
                 logging.info(request.files)
                 file = request.files['file']
-                loc = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-                file.save(loc) #download file temp
-                # santization routine
-                # after some work we want to move it to user data folder
-                # no direct use input is involved but still it will can cause 
-                os.system(f"mv {loc} {app.config['USERDATA_FOLDER']}/{orderid}.png") 
+                fileext = get_file_ext(file.filename)
+                logging.info(fileext)
+                if fileext in ALLOWED_EXTENSIONS:
+                    loc = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+                    file.save(loc) #download file temp
+                    # if file is a zip file then unzip in the upload folder 
+                    if get_file_ext(loc) == "zip":
+                        unzipfile.unzip(loc, app.config['UPLOAD_FOLDER'])
+                    # santization routine
+                    # after some work we want to move it to user data folder
+                    # no direct use input is involved but still it will can cause 
+                    os.system(f"mv {loc} {app.config['USERDATA_FOLDER']}/{orderid}.{fileext}") 
             # Sameer: code end.
             order = getOrderedItemsTuple(orderid, itemid)
             quantity = order[0][2]
