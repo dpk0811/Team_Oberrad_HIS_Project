@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect
+from pymysql.constants import CLIENT
 import pymysql.cursors
 import datetime
 import os
@@ -393,11 +394,29 @@ def shop():
         elif 'search' in request.form:
             searchText = request.form['text_search']
             print(searchText)
-            client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
-            cursor = client.cursor()
-            query_search_string = "%" + searchText + "%"
-            cursor.execute("SELECT * FROM Item WHERE ItemType LIKE '%s'" % (query_search_string))
-            search_results = cursor.fetchall()
+            difficulty = request.form['difficulty']
+            if difficulty == "low":
+                client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01", client_flag=CLIENT.MULTI_STATEMENTS, autocommit=True)
+                cursor = client.cursor()
+                query_search_string = "%" + searchText + "%"
+                query = "SELECT * FROM Item WHERE ItemType LIKE '%s'" % (query_search_string)
+                with cursor:
+                    cursor.execute(query)
+                search_results = cursor.fetchall()
+            elif difficulty == "high":
+                client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
+                cursor = client.cursor()
+                query_search_string = "%" + searchText + "%"
+                query = "SELECT * FROM Item WHERE ItemType LIKE '%s'" % (query_search_string)
+                cursor.execute(query)
+                search_results = cursor.fetchall()
+            else:
+                client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
+                cursor = client.cursor()
+                query_search_string = "%" + searchText + "%"
+                query = "SELECT * FROM Item WHERE ItemType LIKE %s"
+                cursor.execute(query,(query_search_string))
+                search_results = cursor.fetchall()
             client.close()
             columns = ["Id", "Available Quantity", "Price", "Item Type", "Seller", "Description", "Category"]
             return render_template('search_result.html', text = searchText, employee=employee, loggedin=loggedinname,
