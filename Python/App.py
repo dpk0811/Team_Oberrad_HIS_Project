@@ -92,18 +92,18 @@ def login():
             results = cursor.fetchall()
             for customer in results:
                 if customer[0] == email:
-                    localloggedinid = customer[1]
-                    localloggedinname = customer[3]
+                    loggedinid = customer[1]
+                    loggedinname = customer[3]
 #Code added by Deepak and Shounak
-                    resp = make_response(render_template('index.html', employee=employee, loggedin=localloggedinname, title='Home', styles='album.css', bodyclass='bg-light'))
+                    resp = make_response(render_template('index.html', employee=employee, loggedin=loggedinname, title='Home', styles='album.css', bodyclass='bg-light'))
                     expire_time = datetime.datetime.now()
                     expire_time = expire_time + datetime.timedelta(minutes=5.0)
                     randStr = ''.join(random.choices(string.ascii_uppercase + string.digits, k = 40))
-                    resp.set_cookie(str(localloggedinid), value= randStr, domain='127.0.0.1', expires = expire_time)
+                    resp.set_cookie(str(loggedinid), value= randStr, domain='127.0.0.1', expires = expire_time)
 #Code added by Deepak and Shounak
                     employee = False
                     break
-            if localloggedinid != None:
+            if loggedinid != None:
 #Code added by Deepak and Shounak
                 return redirect('/') if (resp == None) else resp
 #Code added by Deepak and Shounak
@@ -126,7 +126,7 @@ def login():
         finally:
             client.close()
 #Code added by Deepak and Shounak
-    return render_template('signin.html', employee=None, title='Log In', styles='signin.css', bodyclass='text-center') if (resp == None) else resp
+    return render_template('signin.html', employee=employee, title='Log In', styles='signin.css', bodyclass='text-center') if (resp == None) else resp
 #Code added by Deepak and Shounak
 
 
