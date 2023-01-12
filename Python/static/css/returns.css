@@ -4,7 +4,7 @@
         margin: 0 auto; /* Added */
         float: none; /* Added */
         margin-bottom: 10px; /* Added */
-        max-height:150px;
+        max-height:250px;
 }
 
 .tab{
@@ -19,6 +19,11 @@
 
 .img-fluid{
     max-height:150px;
+}
+
+.img-thumbnail{
+  height:50px;
+  width:50px;
 }
 
 .modal-body img-fluid{

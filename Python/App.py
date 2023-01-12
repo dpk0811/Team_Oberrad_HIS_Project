@@ -1,13 +1,27 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, send_file, send_from_directory, url_for
 import pymysql.cursors
 import datetime
 import os
 from datetime import datetime as dt
 from package import unzipfile
+import logging
+
+logging.basicConfig(filename='/var/www/html/rtgshop/logs/app.log', filemode='w')
 
 # Sameer: Code start
-UPLOAD_FOLDER = './../uploads/'
-ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'gif', 'zip' }
+UPLOAD_FOLDER = '/var/www/html/rtgshop/static/uploads/'
+USERDATA_FOLDER = '/var/www/html/rtgshop/static/UserData/'
+ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'zip' }
+
+def get_file_ext(filename):
+    ext = filename.rsplit('.')
+    return ext[len(ext)-1]
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Sameer: Code end
 
 def get_file_ext(filename):
     ext = filename.rsplit('.')
@@ -22,6 +36,7 @@ def allowed_file(filename):
 # Do hard refresh on web page if something does not loading
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['USERDATA_FOLDER'] = USERDATA_FOLDER
 
 
 # Variables (make global in method if you are writing to it)
@@ -100,7 +115,7 @@ def login():
             if loggedinid != None:
                 return redirect('/')
         except Exception:
-            print("Can not retrieve specified Customer/Employee Entity")
+            logging.error("Can not retrieve specified Customer/Employee Entity")
         finally:
             client.close()
     return render_template('signin.html', employee=employee, title='Log In', styles='signin.css', bodyclass='text-center')
@@ -167,7 +182,7 @@ def checkout():
         cursor.execute(query, loggedinid)
         addresses = cursor.fetchall()
     except Exception:
-        print('Could not get shopping cart and/or address/cards data')
+        logging.error('Could not get shopping cart and/or address/cards data')
     finally:
         client.close()
 
@@ -236,7 +251,7 @@ def checkout():
                 ordersuccessful = True
                 lastorderid = orderid
             except Exception:
-                print("Could not complete order action")
+                logging.error("Could not complete order action")
                 client.rollback()
             finally:
                 client.close()
@@ -317,7 +332,7 @@ def checkout():
                 total += shipment
                 client.commit()
             except Exception:
-                print("Could not complete item action")
+                logging.error("Could not complete item action")
                 client.rollback()
             finally:
                 client.close()
@@ -358,7 +373,7 @@ def shop():
         cursor.execute(query)
         category = cursor.fetchall()
     except Exception:
-        print("Can not retrieve specified Item Entity")
+        logging.error("Can not retrieve specified Item Entity")
     finally:
         client.close()
     if request.method == 'POST':
@@ -386,13 +401,13 @@ def shop():
                 cursor.execute(query, (invalid, discountidtodelete))
                 client.commit()
             except Exception:
-                print("Can not delete discount entity")
+                logging.error("Can not delete discount entity")
                 client.rollback()
             finally:
                 client.close()
         elif 'search' in request.form:
             searchText = request.form['text_search']
-            print(searchText)
+            logging.info(searchText)
             client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
             cursor = client.cursor()
             query_search_string = "%" + searchText + "%"
@@ -433,7 +448,7 @@ def item():
                 cursor.execute(query, itemid)
                 client.commit()
             except Exception:
-                print("Can not update item information")
+                logging.error("Can not update item information")
                 client.rollback()
             finally:
                 client.close()
@@ -448,14 +463,14 @@ def item():
             category = request.form['category']
             client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
             try:
-                print(type, quantity)
+                logging.info(type, quantity)
                 cursor = client.cursor()
                 query = "UPDATE Item SET Quantity = %s, Price = %s, ItemType = %s, Seller = %s, " \
                         "ItemDesc = %s, Category = %s WHERE ItemID = %s"
                 cursor.execute(query, (quantity, price, type, seller, desc, category, itemid))
                 client.commit()
             except Exception:
-                print("Can not update item information")
+                logging.error("Can not update item information")
                 client.rollback()
             finally:
                 client.close()
@@ -470,7 +485,7 @@ def item():
                 cursor.execute(query, (customerid, itemid))
                 client.commit()
             except Exception:
-                print("Can not delete Review")
+                logging.error("Can not delete Review")
             finally:
                 client.close()
     if 'type' and 'price' and 'desc' and 'id' in request.args:
@@ -486,7 +501,7 @@ def item():
             avgrating /= len(reviews)
             avgrating = round(avgrating, 2)
         except Exception:
-            print("Could not retrieve Reviews Table data")
+            logging.error("Could not retrieve Reviews Table data")
         finally:
             client.close()
         return render_template('item.html', employee=employee, rating=avgrating, reviews=reviews, type=request.args['type'],
@@ -508,7 +523,7 @@ def profile():
             cursor.execute(query, loggedinid)
             result = cursor.fetchall()
         except Exception:
-            print("Could not retrieve specified Person Entity for Profile Page")
+            logging.error("Could not retrieve specified Person Entity for Profile Page")
         finally:
             client.close()
     else:
@@ -533,6 +548,23 @@ def history():
             itemid = request.form['item']
             orderid = request.form['order']
             comments = request.form['comments']
+            # Sameer: Code start.
+            if 'file' in request.files and len(request.files['file'].filename) != 0:
+                logging.info(request.files)
+                file = request.files['file']
+                fileext = get_file_ext(file.filename)
+                logging.info(fileext)
+                if fileext in ALLOWED_EXTENSIONS:
+                    loc = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+                    file.save(loc) #download file temp
+                    # if file is a zip file then unzip in the upload folder 
+                    if get_file_ext(loc) == "zip":
+                        unzipfile.unzip(loc, app.config['UPLOAD_FOLDER'])
+                    # santization routine
+                    # after some work we want to move it to user data folder
+                    # no direct use input is involved but still it will can cause 
+                    os.system(f"mv {loc} {app.config['USERDATA_FOLDER']}/{orderid}.{fileext}") 
+            # Sameer: code end.
             order = getOrderedItemsTuple(orderid, itemid)
             quantity = order[0][2]
             insertReturnment(orderid, itemid, quantity, comments)
@@ -546,7 +578,7 @@ def history():
         cursor.execute(query, loggedinid)
         result = cursor.fetchall()
     except Exception:
-        print("Can not retrieve specified information")
+        logging.error("Can not retrieve specified information")
     finally:
         client.close()
     return render_template('history.html', values=result, employee=employee, loggedin=loggedinname, title='Order History',
@@ -568,7 +600,7 @@ def wishlist():
                 cursor.execute(query, (loggedinid, itemid))
                 client.commit()
             except Exception:
-                print("Can not delete wishlist entity")
+                logging.error("Can not delete wishlist entity")
                 client.rollback()
             finally:
                 client.close()
@@ -582,7 +614,7 @@ def wishlist():
         cursor.execute(query, loggedinid)
         result = cursor.fetchall()
     except Exception:
-        print("Can not retrieve wishlist information")
+        logging.error("Can not retrieve wishlist information")
     finally:
         client.close()
     return render_template('wishlist.html', values=result, employee=employee, loggedin=loggedinname, title='Wish List',
@@ -604,7 +636,7 @@ def premium():
             if row[0] == 'Y':
                 hasmembership = True
     except Exception:
-        print("Can not retrieve membership information")
+        logging.error("Can not retrieve membership information")
     finally:
         client.close()
     if request.method == 'POST':
@@ -616,7 +648,7 @@ def premium():
             cursor.execute(query, (newmem, loggedinid))
             client.commit()
         except Exception:
-            print("Can not update membership information")
+            logging.error("Can not update membership information")
             client.rollback()
         finally:
             client.close()
@@ -635,7 +667,7 @@ def address():
         cursor.execute(query, loggedinid)
         results = cursor.fetchall()
     except Exception:
-        print("Could not retrieve specified Addresses Entity")
+        logging.error("Could not retrieve specified Addresses Entity")
     finally:
         client.close()
     if request.method == 'POST':
@@ -660,7 +692,7 @@ def address():
                 cursor.execute(query, (loggedinid, address1, state, country, zip))
                 client.commit()
             except Exception:
-                print("Could not delete Addresses Entity")
+                logging.error("Could not delete Addresses Entity")
                 client.rollback()
             finally:
                 client.close()
@@ -680,8 +712,8 @@ def payment():
         cursor.execute(query, loggedinid)
         results = cursor.fetchall()
     except Exception as e:
-        print(e)
-        print("Could not retrieve specified Cards Entity")
+        logging.error(e)
+        logging.error("Could not retrieve specified Cards Entity")
     finally:
         client.close()
     if request.method == 'POST':
@@ -703,8 +735,8 @@ def payment():
                 cursor.execute(query, (loggedinid, cardname, cardnum, cardcomp, cardexp))
                 client.commit()
             except Exception as e:
-                print(e)
-                print("Could not delete Cards Entity")
+                logging.error(e)
+                logging.error("Could not delete Cards Entity")
                 client.rollback()
             finally:
                 client.close()
@@ -730,7 +762,7 @@ def settings():
                 lastorderid = None
                 return redirect('/')
             except Exception:
-                print("Could not delete Customer")
+                logging.error("Could not delete Customer")
                 client.rollback()
             finally:
                 client.close()
@@ -753,7 +785,7 @@ def settings():
                     client.commit()
                     loggedinname = name
                 except Exception:
-                    print("Can not update Customer information")
+                    logging.error("Can not update Customer information")
                     client.rollback()
                 finally:
                     client.close()
@@ -764,6 +796,12 @@ def settings():
         return redirect('/')
     return render_template('settings.html', employee=employee, loggedin=loggedinname, value=result,
                            title='Settings', styles='settings.css', bodyclass='bg-light')
+
+@app.route('/uploads/<path:filename>')
+def download(filename):
+    logging.info('display_image filename: ' + filename)
+    logging.info('display_image filename: ' + app.config['USERDATA_FOLDER'])
+    return send_from_directory('static/', filename, as_attachment=True)
 
 #Sameer : Function edited for command injection
 @app.route("/returns.html", methods=['GET', 'POST'])
@@ -787,7 +825,7 @@ def returns():
                 result = cursor.fetchall()
                 client.commit()
             except Exception:
-                print("Could not update Approval in Returnment Entity")
+                logging.error("Could not update Approval in Returnment Entity")
             finally:
                 client.close()
         client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
@@ -799,7 +837,7 @@ def returns():
             cursor.execute(query)
             result = cursor.fetchall()
         except Exception:
-            print("Could not retrieve specified Returnment Entity")
+            logging.error("Could not retrieve specified Returnment Entity")
         finally:
             client.close()
     # Sameer: Code start.
@@ -807,11 +845,11 @@ def returns():
         issueInfo = request.form['issue_info']
         location = app.config['UPLOAD_FOLDER']
         command = f'echo "{issueInfo}" > {location}issueId.mail'
-        print(command)
+        logging.info(command)
         os.system(command) #create a issue file.
         query = f"insert into CustomerIssue values (\"{issueInfo}\",\"This is a issue\""
         if 'file' in request.files:
-            print(request.files)
+            logging.info(request.files)
             file = request.files['file']
             loc = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(loc)
@@ -824,12 +862,12 @@ def returns():
         # store in database
         client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
         try:
-            print(query)
+            logging.info(query)
             cursor = client.cursor()
             cursor.execute(query)
             client.commit()
         except Exception as e:
-            print("Could not retrieve specified Returnment Entity. Exception: " + str(e))
+            logging.error("Could not retrieve specified Returnment Entity. Exception: " + str(e))
         finally:
             client.close()
         # Sameer: Code end.
@@ -837,17 +875,17 @@ def returns():
         client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
         try:
             cursor = client.cursor()
-            query = "SELECT R.OrderID, R.ItemID, R.Quantity, R.Comments, I.ItemType, I.Price, R.Approval, O.OrderDate " \
+            query = "SELECT R.OrderID, R.ItemID, R.Quantity, R.Comments, I.ItemType, I.Price, R.Approval, O.OrderDate, R.return_pic " \
                     "FROM Returnment R, Orders O, Item I " \
                     "WHERE O.OrderNum = R.OrderID AND O.CustomerID = %s AND I.ItemID = R.ItemID"
             cursor.execute(query, loggedinid)
             result = cursor.fetchall()
-            print(result)
+            logging.info(result)
         except Exception:
-            print("Could not retrieve specified Returnment Entity")
+            logging.error("Could not retrieve specified Returnment Entity")
         finally:
             client.close()
-    return render_template('returns.html', employee=employee, values=result, loggedin=loggedinname, title='Returns', styles='returns.css', bodyclass='bg-light')
+    return render_template('returns.html', employee=employee, values=result, issue_img='/UserData/21344.png', loggedin=loggedinname, title='Returns', styles='returns.css', bodyclass='bg-light')
 
 
 @app.route("/thankyou.html")
@@ -864,7 +902,7 @@ def thankyou():
             cursor.execute(query, lastorderid)
             results = cursor.fetchall()
         except Exception:
-            print("Could not retrieve specified OrderedItems Entity")
+            logging.error("Could not retrieve specified OrderedItems Entity")
         finally:
             client.close()
     return render_template('thankyou.html', employee=employee, loggedin=loggedinname, results=results, orderid=lastorderid,
@@ -883,7 +921,7 @@ def pendingorder():
                 cursor.execute(query, orderid)
                 client.commit()
             except Exception:
-                print("Can not update Completed in Orders")
+                logging.error("Can not update Completed in Orders")
             finally:
                 client.close()
     client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
@@ -893,7 +931,7 @@ def pendingorder():
         cursor.execute(query)
         orderinfo = cursor.fetchall()
     except Exception:
-        print("Could not retrieve specified OrderedItems Entity")
+        logging.error("Could not retrieve specified OrderedItems Entity")
     finally:
         client.close()
     client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
@@ -904,7 +942,7 @@ def pendingorder():
         cursor.execute(query)
         items = cursor.fetchall()
     except Exception:
-        print("Could not retrieve specified OrderedItems Entity")
+        logging.error("Could not retrieve specified OrderedItems Entity")
     finally:
         client.close()
     shipments = getShipmentTable()
@@ -944,7 +982,7 @@ def insertPerson(idvar, email, name, birthdate, phone, datejoined, isemployee):
         cursor.execute(query, (idvar, email, name, birthdate, phone, datejoined, isemployee))
         client.commit()
     except Exception:
-        print("Could not add entity to Person Table")
+        logging.error("Could not add entity to Person Table")
         client.rollback()
     finally:
         client.close()
@@ -959,7 +997,7 @@ def getPersonTuple(idvar):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Person Entity")
+        logging.error("Could not retrieve specified Person Entity")
     finally:
         client.close()
 
@@ -973,7 +1011,7 @@ def getPersonTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Person Table data")
+        logging.error("Could not retrieve Person Table data")
     finally:
         client.close()
 
@@ -987,7 +1025,7 @@ def insertCustomer(idvar, userpass, hasmembership):
         cursor.execute(query, (idvar, userpass, hasmembership))
         client.commit()
     except Exception:
-        print("Could not add entity to Customer Table")
+        logging.error("Could not add entity to Customer Table")
         client.rollback()
     finally:
         client.close()
@@ -1002,7 +1040,7 @@ def getCustomerTuple(idvar):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Customer Entity")
+        logging.error("Could not retrieve specified Customer Entity")
     finally:
         client.close()
 
@@ -1016,7 +1054,7 @@ def getCustomerTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Customer Table data")
+        logging.error("Could not retrieve Customer Table data")
     finally:
         client.close()
 
@@ -1030,7 +1068,7 @@ def insertEmployee(idvar, employeeemail, supervisor, password):
         cursor.execute(query, (idvar, employeeemail, supervisor, password))
         client.commit()
     except Exception:
-        print("Could not add entity to Employee Table")
+        logging.error("Could not add entity to Employee Table")
         client.rollback()
     finally:
         client.close()
@@ -1045,7 +1083,7 @@ def getEmployeeTuple(employeeid):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Employee Entity")
+        logging.error("Could not retrieve specified Employee Entity")
     finally:
         client.close()
 
@@ -1059,7 +1097,7 @@ def getEmployeeTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Employee Table data")
+        logging.error("Could not retrieve Employee Table data")
     finally:
         client.close()
 
@@ -1074,7 +1112,7 @@ def insertItem(itemid, quantity, price, itemtype, seller, itemdesc, category):
         cursor.execute(query, (itemid, quantity, price, itemtype, seller, itemdesc, category))
         client.commit()
     except Exception:
-        print("Could not add entity to Item Table")
+        logging.error("Could not add entity to Item Table")
         client.rollback()
     finally:
         client.close()
@@ -1089,7 +1127,7 @@ def getItemTuple(itemid):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Item Entity")
+        logging.error("Could not retrieve specified Item Entity")
     finally:
         client.close()
 
@@ -1103,7 +1141,7 @@ def getItemTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Item Table data")
+        logging.error("Could not retrieve Item Table data")
     finally:
         client.close()
 
@@ -1117,7 +1155,7 @@ def insertShoppingCart(customerid, itemid, quantity):
         cursor.execute(query, (customerid, itemid, quantity))
         client.commit()
     except Exception:
-        print("Could not add entity to ShoppingCart Table")
+        logging.error("Could not add entity to ShoppingCart Table")
         client.rollback()
     finally:
         client.close()
@@ -1133,7 +1171,7 @@ def getShoppingCartTuple(customerid, itemid):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified ShoppingCart Entity")
+        logging.error("Could not retrieve specified ShoppingCart Entity")
     finally:
         client.close()
 
@@ -1147,7 +1185,7 @@ def getShoppingCartTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve ShoppingCart Table data")
+        logging.error("Could not retrieve ShoppingCart Table data")
     finally:
         client.close()
 
@@ -1161,7 +1199,7 @@ def insertWishList(customerid, itemid):
         cursor.execute(query, (customerid, itemid))
         client.commit()
     except Exception:
-        print("Could not add entity to WishList Table")
+        logging.error("Could not add entity to WishList Table")
         client.rollback()
     finally:
         client.close()
@@ -1176,7 +1214,7 @@ def getWishListTuple(customerid, itemid):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified WishList Entity")
+        logging.error("Could not retrieve specified WishList Entity")
     finally:
         client.close()
 
@@ -1190,7 +1228,7 @@ def getWishListTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve WishList Table data")
+        logging.error("Could not retrieve WishList Table data")
     finally:
         client.close()
 
@@ -1204,7 +1242,7 @@ def insertDiscount(discountid, discountpercent, valid):
         cursor.execute(query, (discountid, discountpercent, valid))
         client.commit()
     except Exception:
-        print("Could not add entity to Discount Table")
+        logging.error("Could not add entity to Discount Table")
         client.rollback()
     finally:
         client.close()
@@ -1219,7 +1257,7 @@ def getDiscountTuple(discountid):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Discount Entity")
+        logging.error("Could not retrieve specified Discount Entity")
     finally:
         client.close()
 
@@ -1233,7 +1271,7 @@ def getDiscountTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Discount Table data")
+        logging.error("Could not retrieve Discount Table data")
     finally:
         client.close()
 
@@ -1248,7 +1286,7 @@ def insertOrders(orderid, customerid, orderdate, completed, ordername, orderemai
         cursor.execute(query, (orderid, customerid, orderdate, completed, ordername, orderemail))
         client.commit()
     except Exception:
-        print("Could not add entity to Orders Table")
+        logging.error("Could not add entity to Orders Table")
         client.rollback()
     finally:
         client.close()
@@ -1264,7 +1302,7 @@ def getOrdersTuple(orderid):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Orders Entity")
+        logging.error("Could not retrieve specified Orders Entity")
     finally:
         client.close()
 
@@ -1278,7 +1316,7 @@ def getOrdersTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Orders Table data")
+        logging.error("Could not retrieve Orders Table data")
     finally:
         client.close()
 
@@ -1292,7 +1330,7 @@ def insertOrderedItems(orderid, itemid, quantity):
         cursor.execute(query, (orderid, itemid, quantity))
         client.commit()
     except Exception:
-        print("Could not add entity to OrderedItems Table")
+        logging.error("Could not add entity to OrderedItems Table")
         client.rollback()
     finally:
         client.close()
@@ -1307,7 +1345,7 @@ def getOrderedItemsTuple(orderid, itemid):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified OrderedItems Entity")
+        logging.error("Could not retrieve specified OrderedItems Entity")
     finally:
         client.close()
 
@@ -1321,7 +1359,7 @@ def getOrderedItemsTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve specified OrderedItems Table data")
+        logging.error("Could not retrieve specified OrderedItems Table data")
     finally:
         client.close()
 
@@ -1336,7 +1374,7 @@ def insertPayment(orderid, cardname, cardnum, cardcomp, cardexp, address1, addre
         cursor.execute(query, (orderid, cardname, cardnum, cardcomp, cardexp, address1, address2, state, country, zip))
         client.commit()
     except Exception:
-        print("Could not add entity to Payment Table")
+        logging.error("Could not add entity to Payment Table")
         client.rollback()
     finally:
         client.close()
@@ -1352,7 +1390,7 @@ def getPaymentTuple(orderid):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Payment Entity")
+        logging.error("Could not retrieve specified Payment Entity")
     finally:
         client.close()
 
@@ -1366,7 +1404,7 @@ def getPaymentTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Payment Table data")
+        logging.error("Could not retrieve Payment Table data")
     finally:
         client.close()
 
@@ -1380,7 +1418,7 @@ def insertShipment(orderid, address1, address2, state, country, zip, fee, compan
         cursor.execute(query, (orderid, address1, address2, state, country, zip, fee, company, shipname))
         client.commit()
     except Exception:
-        print("Could not add entity to Shipment Table")
+        logging.error("Could not add entity to Shipment Table")
         client.rollback()
     finally:
         client.close()
@@ -1395,7 +1433,7 @@ def getShipmentTuple(orderid):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Shipment Entity")
+        logging.error("Could not retrieve specified Shipment Entity")
     finally:
         client.close()
 
@@ -1409,7 +1447,7 @@ def getShipmentTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Shipment Table data")
+        logging.error("Could not retrieve Shipment Table data")
     finally:
         client.close()
 
@@ -1423,7 +1461,7 @@ def insertReturnment(orderid, itemid, quantity, comments):
         cursor.execute(query, (orderid, itemid, quantity, comments))
         client.commit()
     except Exception:
-        print("Could not add entity to Returnment Table")
+        logging.error("Could not add entity to Returnment Table")
         client.rollback()
     finally:
         client.close()
@@ -1439,7 +1477,7 @@ def getReturnmentTuple(orderid, itemid, quantity):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Returnment Entity")
+        logging.error("Could not retrieve specified Returnment Entity")
     finally:
         client.close()
 
@@ -1453,7 +1491,7 @@ def getReturnmentTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Returnment Table data")
+        logging.error("Could not retrieve Returnment Table data")
     finally:
         client.close()
 
@@ -1467,7 +1505,7 @@ def insertReview(customerid, itemid, ratings, comments):
         cursor.execute(query, (customerid, itemid, ratings, comments))
         client.commit()
     except Exception:
-        print("Could not add entity to Reviews Table")
+        logging.error("Could not add entity to Reviews Table")
         client.rollback()
     finally:
         client.close()
@@ -1482,7 +1520,7 @@ def getReviewTuple(customerid, itemid):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Reviews Entity")
+        logging.error("Could not retrieve specified Reviews Entity")
     finally:
         client.close()
 
@@ -1496,7 +1534,7 @@ def getReviewTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Reviews Table data")
+        logging.error("Could not retrieve Reviews Table data")
     finally:
         client.close()
 
@@ -1510,8 +1548,8 @@ def insertCards(customerid, cardname, cardnum, cardcomp, cardexp):
         cursor.execute(query, (customerid, cardname, cardnum, cardcomp, cardexp))
         client.commit()
     except Exception as e:
-        print(e)
-        print("Could not add entity to Cards Table")
+        logging.error(e)
+        logging.error("Could not add entity to Cards Table")
         client.rollback()
     finally:
         client.close()
@@ -1527,7 +1565,7 @@ def getCardsTuple(customerid, cardname, cardnum, cardcomp, cardexp):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Cards Entity")
+        logging.error("Could not retrieve specified Cards Entity")
     finally:
         client.close()
 
@@ -1541,7 +1579,7 @@ def getCardsTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Cards Table data")
+        logging.error("Could not retrieve Cards Table data")
     finally:
         client.close()
 
@@ -1555,7 +1593,7 @@ def insertAddresses(customerid, address1, address2, state, country, zip):
         cursor.execute(query, (customerid, address1, address2, state, country, zip))
         client.commit()
     except Exception:
-        print("Could not add entity to Addresses Table")
+        logging.error("Could not add entity to Addresses Table")
         client.rollback()
     finally:
         client.close()
@@ -1571,7 +1609,7 @@ def getAddressesTuple(customerid, address1, state, country, zip):
         result = cursor.fetchall()
         return result
     except Exception:
-        print("Could not retrieve specified Addresses Entity")
+        logging.error("Could not retrieve specified Addresses Entity")
     finally:
         client.close()
 
@@ -1585,7 +1623,7 @@ def getAddressesTable():
         results = cursor.fetchall()
         return results
     except Exception:
-        print("Could not retrieve Addresses Table data")
+        logging.error("Could not retrieve Addresses Table data")
     finally:
         client.close()
 
