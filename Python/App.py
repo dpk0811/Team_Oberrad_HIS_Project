@@ -1,7 +1,10 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, make_response
 import pymysql.cursors
 import datetime
 import os
+import string
+import datetime
+import random
 from datetime import datetime as dt
 from package import unzipfile
 
@@ -15,7 +18,7 @@ def get_file_ext(filename):
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Sameer: Code end
 
@@ -29,15 +32,24 @@ employee = False
 loggedinid = None
 loggedinname = None
 lastorderid = None
+#Code added by Deepak and Shounak
+resp = None
+#Code added by Deepak and Shounak
 
 @app.route("/")
 def home():
-    global loggedinid, loggedinname, lastorderid,employee
+    global loggedinid, loggedinname, lastorderid,employee, resp
     if 'logoff' in request.args:
+#Code added by Deepak and Shounak
+        resp = make_response(render_template('index.html', employee=employee, loggedin=None, title='Home', styles='album.css', bodyclass='bg-light'))
+        resp.set_cookie(str(loggedinid), '', expires=0)
+        #Code added by Deepak and Shounak
         loggedinid = None
         loggedinname = None
         lastorderid = None
-    return render_template('index.html', employee=employee, loggedin=loggedinname, title='Home', styles='album.css', bodyclass='bg-light')
+#Code added by Deepak and Shounak
+    return render_template('index.html', employee=employee, loggedin=loggedinname, title='Home', styles='album.css', bodyclass='bg-light') if (resp == None) else resp
+#Code added by Deepak and Shounak
 
 
 @app.route("/signup.html", methods=['GET', 'POST'])
@@ -56,10 +68,10 @@ def signup():
         return redirect('/signin.html')
     return render_template('signup.html', title='Sign Up', styles='signin.css', bodyclass='text-center')
 
-
 @app.route("/signin.html", methods=['GET', 'POST'])
 def login():
-    global loggedinid, loggedinname, employee
+    #global loggedinid, loggedinname, employee, resp
+    resp = None
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
@@ -80,12 +92,21 @@ def login():
             results = cursor.fetchall()
             for customer in results:
                 if customer[0] == email:
-                    loggedinid = customer[1]
-                    loggedinname = customer[3]
+                    localloggedinid = customer[1]
+                    localloggedinname = customer[3]
+#Code added by Deepak and Shounak
+                    resp = make_response(render_template('index.html', employee=employee, loggedin=localloggedinname, title='Home', styles='album.css', bodyclass='bg-light'))
+                    expire_time = datetime.datetime.now()
+                    expire_time = expire_time + datetime.timedelta(minutes=5.0)
+                    randStr = ''.join(random.choices(string.ascii_uppercase + string.digits, k = 40))
+                    resp.set_cookie(str(localloggedinid), value= randStr, domain='127.0.0.1', expires = expire_time)
+#Code added by Deepak and Shounak
                     employee = False
                     break
-            if loggedinid != None:
-                return redirect('/')
+            if localloggedinid != None:
+#Code added by Deepak and Shounak
+                return redirect('/') if (resp == None) else resp
+#Code added by Deepak and Shounak
             else:
                 # Check if employee
                 query = "SELECT E.EmployeeEmail, E.Userpass, P.Named FROM Employee E, Person P WHERE E.ID = P.ID"
@@ -99,11 +120,14 @@ def login():
                         break
             if loggedinid != None:
                 return redirect('/')
-        except Exception:
+        except Exception as e:
+            print(e)
             print("Can not retrieve specified Customer/Employee Entity")
         finally:
             client.close()
-    return render_template('signin.html', employee=employee, title='Log In', styles='signin.css', bodyclass='text-center')
+#Code added by Deepak and Shounak
+    return render_template('signin.html', employee=None, title='Log In', styles='signin.css', bodyclass='text-center') if (resp == None) else resp
+#Code added by Deepak and Shounak
 
 
 @app.route("/checkout.html", methods=['GET', 'POST'])
@@ -1592,4 +1616,4 @@ def getAddressesTable():
 
 # to run in python
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
