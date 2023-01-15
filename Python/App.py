@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, send_file, send_from_directory, url_for
+from flask import Flask, render_template, request, redirect, send_file, send_from_directory, url_for, session, g
 import pymysql.cursors
 import datetime
 import os
@@ -35,6 +35,8 @@ def allowed_file(filename):
 
 # Do hard refresh on web page if something does not loading
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
+app.config['SESSION_COOKIE_HTTPONLY'] = False
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['USERDATA_FOLDER'] = USERDATA_FOLDER
 
@@ -52,8 +54,20 @@ def home():
         loggedinid = None
         loggedinname = None
         lastorderid = None
+        session.clear()
     return render_template('index.html', employee=employee, loggedin=loggedinname, title='Home', styles='album.css', bodyclass='bg-light')
 
+
+@app.before_request
+def before_request():
+    g.user = None
+    global loggedinid, loggedinname, lastorderid, employee
+    if "user" in session:
+        g.user = session["user"]
+        loggedinid = g.user["loggedinid"]
+        loggedinname = g.user["loggedinname"]
+        employee = g.user["employee"]
+ 
 
 @app.route("/signup.html", methods=['GET', 'POST'])
 def signup():
@@ -98,6 +112,8 @@ def login():
                     loggedinid = customer[1]
                     loggedinname = customer[3]
                     employee = False
+                    user = {"loggedinid": loggedinid, "loggedinname": loggedinname, "employee": employee}
+                    session["user"] = user
                     break
             if loggedinid != None:
                 return redirect('/')
@@ -111,6 +127,8 @@ def login():
                         loggedinid = employee[0]
                         loggedinname = employee[2]
                         employee = True
+                        user = {"loggedinid": loggedinid, "loggedinname": loggedinname, "employee": employee}
+                        session["user"] = user
                         break
             if loggedinid != None:
                 return redirect('/')
