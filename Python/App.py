@@ -67,6 +67,11 @@ def before_request():
         loggedinid = g.user["loggedinid"]
         loggedinname = g.user["loggedinname"]
         employee = g.user["employee"]
+    else:
+        employee = False
+        loggedinid = None
+        loggedinname = None
+        lastorderid = None
  
 
 @app.route("/signup.html", methods=['GET', 'POST'])
