@@ -36,6 +36,7 @@ def allowed_file(filename):
 
 # Do hard refresh on web page if something does not loading
 app = Flask(__name__)
+app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['USERDATA_FOLDER'] = USERDATA_FOLDER
 
