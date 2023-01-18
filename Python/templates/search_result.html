@@ -32,7 +32,7 @@
             <td>{{price}}</td>
             <td>{{item_type}}</td>
             <td>{{seller}}</td>
-            <td>{{description}}</td>
+            <td>{{description|safe}}</td>
             <td>{{category}}</td>
           </tr>
         {%- endfor %}

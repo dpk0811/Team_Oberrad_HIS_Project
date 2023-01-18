@@ -16,7 +16,7 @@
                     {% if type %}
                     <h3 class="card-title">{{ type }} - {{ seller }}</h3>
                     <h4>${{ price }}</h4>
-                    <p class="card-text">{{ desc }}</p>
+                    <p class="card-text">{{ desc | safe}}</p>
                     <p>
                         {% if loggedin %}
                     {% if not employee %}

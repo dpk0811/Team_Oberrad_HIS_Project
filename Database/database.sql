@@ -40,7 +40,7 @@ CREATE TABLE Item (
     Price DEC(9 , 2) NOT NULL,
     ItemType VARCHAR(30) NOT NULL,
     Seller VARCHAR(30) NOT NULL,
-    ItemDesc VARCHAR(200),
+    ItemDesc VARCHAR(1000),
     Category VARCHAR(30) NOT NULL,
     PRIMARY KEY (ItemID)
 );
