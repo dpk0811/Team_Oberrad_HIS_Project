@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, send_file, send_from_directory, url_for, session, g
+from pymysql.constants import CLIENT
 import pymysql.cursors
 import datetime
 import os
@@ -37,6 +38,7 @@ def allowed_file(filename):
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['SESSION_COOKIE_HTTPONLY'] = False
+app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['USERDATA_FOLDER'] = USERDATA_FOLDER
 
@@ -430,13 +432,21 @@ def shop():
                 client.close()
         elif 'search' in request.form:
             searchText = request.form['text_search']
-            logging.info(searchText)
-            client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
-            cursor = client.cursor()
-            query_search_string = "%" + searchText + "%"
-            cursor.execute("SELECT * FROM Item WHERE ItemType LIKE '%s'" % (query_search_string))
-            search_results = cursor.fetchall()
-            client.close()
+            print(searchText)
+            try:
+                client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01", client_flag=CLIENT.MULTI_STATEMENTS, autocommit=True)
+                cursor = client.cursor()
+                query_search_string = "%" + searchText + "%"
+                query = "SELECT * FROM Item WHERE ItemType LIKE '%s'" % (query_search_string)
+                with cursor:
+                    cursor.execute(query)
+                search_results = cursor.fetchall()
+            except pymysql.Error as e:
+                error_message = "Error " + str(e.args[0]) + ": " + e.args[1]
+                logging.error("Can not delete discount entity")
+                client.rollback()
+            finally:
+                client.close()
             columns = ["Id", "Available Quantity", "Price", "Item Type", "Seller", "Description", "Category"]
             return render_template('search_result.html', text = searchText, employee=employee, loggedin=loggedinname,
                                    rows=search_results, columns=columns)
