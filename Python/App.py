@@ -443,7 +443,7 @@ def shop():
                 search_results = cursor.fetchall()
             except pymysql.Error as e:
                 error_message = "Error " + str(e.args[0]) + ": " + e.args[1]
-                logging.error("Can not delete discount entity")
+                logging.error(error_message)
                 client.rollback()
             finally:
                 client.close()
