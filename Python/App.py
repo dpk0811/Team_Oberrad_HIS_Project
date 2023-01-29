@@ -14,16 +14,7 @@ UPLOAD_FOLDER = '/var/www/html/rtgshop/static/uploads/'
 USERDATA_FOLDER = '/var/www/html/rtgshop/static/UserData/'
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'zip' }
 
-def get_file_ext(filename):
-    ext = filename.rsplit('.')
-    return ext[len(ext)-1]
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 # Sameer: Code end
-
 def get_file_ext(filename):
     ext = filename.rsplit('.')
     return ext[len(ext)-1]
@@ -31,7 +22,6 @@ def get_file_ext(filename):
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 # Sameer: Code end
 
 # Do hard refresh on web page if something does not loading
