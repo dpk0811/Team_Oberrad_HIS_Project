@@ -163,7 +163,7 @@ def main():
     logging.info("Creating sockets...")
     for _ in range(socket_count):
         try:
-            logging.debug("Creating socket nr %s", _)
+            logging.debug("Creating socket # %s", _)
             s = init_socket(ip)
         except socket.error as e:
             logging.debug(e)
