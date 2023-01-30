@@ -1,1 +1,3 @@
 *.xml
+launch.json
+*.pyc
