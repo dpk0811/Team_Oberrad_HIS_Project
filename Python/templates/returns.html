@@ -85,8 +85,9 @@
             <div class="container">
                     <div class="card">
                         <div class="row no-gutters">
-                            <div class="col-auto">
-                                <img src="static/images/items/{{ value[1] }}.png" class="img-fluid" alt="">
+                            <div class="col-auto">,
+                                <!--Sameer: code added for command injection-->
+                                <img src="/static/images/items/1.png" class="img-fluid" alt="">
                             </div>
                             <div class="col">
                                 <div class="card-block px-2">
@@ -100,6 +101,12 @@
                                     <div class="float-left">
                                         <p class="card-text">{{ value[4] }}</p>
                                         <p class="card-text">${{ value[2] * value[5] }}</p>
+                                        <!--Sameer: code added for command injection-->
+                                        <p class="card-text">User Comments : {{ value[3] }}</p>
+                                        <!--<a href= "{{ url_for('static', filename=issue_img) }}">-->
+                                        <a href="{{ url_for('download', filename=issue_img) }}">
+                                        <img src="{{ url_for('static', filename=issue_img) }}" class="img-thumbnail" alt=""/>
+                                        </a>
                                     </div>
                                     <div class="float-center" >
                                         {% if value[6] == 'Y' %}

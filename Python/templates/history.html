@@ -91,7 +91,7 @@
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-        <form method="POST" action="/history.html">
+        <form method="POST" action="/history.html" enctype=multipart/form-data>
             <div class="modal-body">
                 <div class="form-group">
                     <label for="description">Why are you returning this item?</label>
@@ -102,6 +102,10 @@
             </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <div class="custom-file">
+              <input type=file class="custom-file-input" id="inputfile" name=file>
+              <label class="custom-file-label" for="inputfile">Picture</label>
+            </div>
             <input type="submit" class="btn btn-primary" name="return" value="Submit Return">
           </div>
         </form>

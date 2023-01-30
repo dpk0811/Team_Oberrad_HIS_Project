@@ -142,6 +142,7 @@ CREATE TABLE Returnment (
     Quantity INT,
     Comments VARCHAR(200) NOT NULL,
     Approval CHAR(1),
+    RETURN_PIC VARCHAR(150),
     PRIMARY KEY (OrderID , ItemID),
     FOREIGN KEY (OrderID)
         REFERENCES OrderedItems (OrderID)
@@ -190,6 +191,11 @@ CREATE TABLE Cards (
         ON DELETE NO ACTION ON UPDATE CASCADE
 );
 
+CREATE TABLE CustomerIssue (
+    DESCRIPTION VARCHAR(100) NOT NULL,
+    DETAILS VARCHAR(500) NULL,
+    FILES BLOB NULL
+);
 
 #Constraints
 DELIMITER $
