@@ -375,7 +375,8 @@ def shop():
             client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
             cursor = client.cursor()
             query_search_string = "%" + searchText + "%"
-            cursor.execute("SELECT * FROM Item WHERE ItemType LIKE '%s'" % (query_search_string))
+            query = "SELECT * FROM Item WHERE ItemType LIKE %s"
+            cursor.execute(query, (query_search_string))
             search_results = cursor.fetchall()
             client.close()
             columns = ["Id", "Available Quantity", "Price", "Item Type", "Seller", "Description", "Category"]
