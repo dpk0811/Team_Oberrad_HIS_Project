@@ -6,13 +6,15 @@ import os
 from datetime import datetime as dt
 from package import unzipfile
 import logging
+import shutil
+import re
 
-logging.basicConfig(filename='/var/www/html/rtgshop/logs/app.log', filemode='w')
+logging.basicConfig(filename='/var/www/html/rtgshop/logs/app.log', filemode='w', level=logging.DEBUG)
 
 # Sameer: Code start
 UPLOAD_FOLDER = '/var/www/html/rtgshop/static/uploads/'
 USERDATA_FOLDER = '/var/www/html/rtgshop/static/UserData/'
-ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'zip' }
+ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg' }
 
 # Sameer: Code end
 def get_file_ext(filename):
@@ -554,6 +556,22 @@ def profile():
     return render_template('profile.html', employee=employee, name=result, loggedin=loggedinname, title='Profile', styles='',
                            bodyclass='bg-light')
 
+# Sameer: Command Injection Mitigation; Input validation, using allow list
+ALLOW_LIST_REGEX = '^[a-zA-Z0-9_.]*$'
+MAX_FILE_NAME_LEN = 15
+regxObject = re.compile(ALLOW_LIST_REGEX)
+
+def doUploadFileInputValidation(UploadFileName):
+    # if file name is more than expected reject
+    if len(UploadFileName) > MAX_FILE_NAME_LEN:
+        return False
+    
+    # check if file name matches regex fully or not
+    if regxObject.fullmatch(UploadFileName) == None:
+        return False
+    
+    return True
+# Sameer: Command Injection Mitigation; END
 
 @app.route("/history.html", methods=['GET', 'POST'])
 def history():
@@ -575,22 +593,21 @@ def history():
             if 'file' in request.files and len(request.files['file'].filename) != 0:
                 logging.info(request.files)
                 file = request.files['file']
-                fileext = get_file_ext(file.filename)
-                logging.info(fileext)
-                if fileext in ALLOWED_EXTENSIONS:
-                    loc = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+                uploadFilename = file.filename
+                fileext = get_file_ext(uploadFilename)
+                # only process request when input validation is okay.
+                if doUploadFileInputValidation(uploadFilename) == True and fileext in ALLOWED_EXTENSIONS:
+                    loc = os.path.join(app.config['UPLOAD_FOLDER'], uploadFilename)
                     file.save(loc) #download file temp
-                    # if file is a zip file then unzip in the upload folder 
-                    if get_file_ext(loc) == "zip":
-                        unzipfile.unzip(loc, app.config['UPLOAD_FOLDER'])
                     # santization routine
-                    # after some work we want to move it to user data folder
-                    # no direct use input is involved but still it will can cause 
-                    os.system(f"mv {loc} {app.config['USERDATA_FOLDER']}/{orderid}.{fileext}") 
-            # Sameer: code end.
-            order = getOrderedItemsTuple(orderid, itemid)
-            quantity = order[0][2]
-            insertReturnment(orderid, itemid, quantity, comments)
+                    # os.system(f"mv {loc} {app.config['USERDATA_FOLDER']}/{orderid}.{fileext}")
+                    newFileName = f'{orderid}.{fileext}'
+                    destinationLoc = f"{app.config['USERDATA_FOLDER']}/{newFileName}"
+                    shutil.move(loc, destinationLoc)
+                    order = getOrderedItemsTuple(orderid, itemid)
+                    quantity = order[0][2]
+                    insertReturnment(orderid, itemid, quantity, comments, newFileName)
+                # Sameer: code end.
     result = None
     client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
     try:
@@ -1476,15 +1493,28 @@ def getShipmentTable():
 
 
 # Returnment Table
-def insertReturnment(orderid, itemid, quantity, comments):
+def insertReturnment(orderid, itemid, quantity, comments, return_pic):
     client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
     try:
+        result = None
         cursor = client.cursor()
-        query = "INSERT INTO Returnment(OrderID, ItemID, Quantity, Comments, Approval) values(%s, %s, %s, %s, NULL)"
-        cursor.execute(query, (orderid, itemid, quantity, comments))
+        query = "SELECT COUNT(*) FROM Returnment where OrderID=%s"
+        cursor.execute(query, (orderid))
+        result = cursor.fetchall()
+        if result[0][0] != '0':
+            logging.debug('returnment available, update returnment now')
+            query = "update Returnment set comments=%s, return_pic=%s where orderid=%s"
+            cursor.execute(query, (comments, return_pic, orderid))
+        else:
+            logging.debug('returnment not available, add returnment now')
+            query = "INSERT INTO Returnment(OrderID, ItemID, Quantity, Comments, Approval, Return_pic) values(%s, %s, %s, %s, NULL, %s)"
+            cursor.execute(query, (orderid, itemid, quantity, comments, return_pic))
+
+        #query = "INSERT INTO Returnment(OrderID, ItemID, Quantity, Comments, Approval) values(%s, %s, %s, %s, NULL)"
+        #cursor.execute(query, (orderid, itemid, quantity, comments))
         client.commit()
     except Exception:
-        logging.error("Could not add entity to Returnment Table")
+        logging.exception("exception")
         client.rollback()
     finally:
         client.close()
