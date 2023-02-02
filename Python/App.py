@@ -923,7 +923,6 @@ def returns():
 
 
 @app.route("/thankyou.html")
-@app.route("/thankyou.html")
 def thankyou():
     results = None
     if lastorderid == None:
@@ -1071,7 +1070,7 @@ def insertCustomer(idvar, userpass, hasmembership):
         query = "INSERT INTO Customer(CustomerID, Userpass, HasMembership) values(%s, %s, %s)"
         cursor.execute(query, (idvar, userpass, hasmembership))
         client.commit()
-    except Exception as e:
+    except Exception:
         logging.error("Could not add entity to Customer Table")
         client.rollback()
     finally:
