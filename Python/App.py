@@ -6,7 +6,6 @@ import os
 from datetime import datetime as dt
 from package import unzipfile
 import logging
-from flask_wtf.csrf import CSRFProtect
 
 logging.basicConfig(filename='app.log', filemode='w')
 
