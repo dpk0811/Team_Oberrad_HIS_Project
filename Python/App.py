@@ -33,8 +33,6 @@ app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "st
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['USERDATA_FOLDER'] = USERDATA_FOLDER
 
-csrf = CSRFProtect(app)
-
 
 # Variables (make global in method if you are writing to it)
 employee = False
@@ -84,7 +82,7 @@ def signup():
         insertCustomer(idn, password, 'N')
         return redirect('/signin.html')
     return render_template('signup.html', title='Sign Up', styles='signin.css', bodyclass='text-center')
-csrf.exempt
+
 @app.route("/delete_user")
 def delete_user():
     idn = request.args.get('idn')
