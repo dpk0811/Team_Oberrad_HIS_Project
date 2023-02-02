@@ -6,8 +6,9 @@ import os
 from datetime import datetime as dt
 from package import unzipfile
 import logging
+from flask_wtf.csrf import CSRFProtect
 
-logging.basicConfig(filename='/var/www/html/rtgshop/logs/app.log', filemode='w')
+logging.basicConfig(filename='app.log', filemode='w')
 
 # Sameer: Code start
 UPLOAD_FOLDER = '/var/www/html/rtgshop/static/uploads/'
@@ -26,11 +27,13 @@ def allowed_file(filename):
 
 # Do hard refresh on web page if something does not loading
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key='abc'
 app.config['SESSION_COOKIE_HTTPONLY'] = False
 app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['USERDATA_FOLDER'] = USERDATA_FOLDER
+
+csrf = CSRFProtect(app)
 
 
 # Variables (make global in method if you are writing to it)
@@ -81,6 +84,14 @@ def signup():
         insertCustomer(idn, password, 'N')
         return redirect('/signin.html')
     return render_template('signup.html', title='Sign Up', styles='signin.css', bodyclass='text-center')
+csrf.exempt
+@app.route("/delete_user")
+def delete_user():
+    idn = request.args.get('idn')
+    print(idn)
+    deleteFromCustomer(idn)
+    deleteFromPerson(idn)
+    return redirect('/signin.html')
 
 
 @app.route("/signin.html", methods=['GET', 'POST'])
@@ -912,6 +923,7 @@ def returns():
 
 
 @app.route("/thankyou.html")
+@app.route("/thankyou.html")
 def thankyou():
     results = None
     if lastorderid == None:
@@ -1010,6 +1022,18 @@ def insertPerson(idvar, email, name, birthdate, phone, datejoined, isemployee):
     finally:
         client.close()
 
+def deleteFromPerson(idvar):
+    client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
+    try:
+        cursor = client.cursor()
+        query = f"DELETE FROM Person WHERE ID = {idvar}"
+        cursor.execute(query)
+        client.commit()
+    except Exception as e:
+        logging.error("Could not delete entity from Person Table", e)
+        client.rollback()
+    finally:
+        client.close()
 
 def getPersonTuple(idvar):
     client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
@@ -1047,12 +1071,25 @@ def insertCustomer(idvar, userpass, hasmembership):
         query = "INSERT INTO Customer(CustomerID, Userpass, HasMembership) values(%s, %s, %s)"
         cursor.execute(query, (idvar, userpass, hasmembership))
         client.commit()
-    except Exception:
-        logging.error("Could not add entity to Customer Table")
+    except Exception as e:
+        #logging.error("Could not add entity to Customer Table")
+        print("error", e)
         client.rollback()
     finally:
         client.close()
 
+def deleteFromCustomer(idVar):
+    client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
+    try:
+        cursor = client.cursor()
+        query = f"DELETE FROM Customer WHERE CustomerID = {idVar}"
+        cursor.execute(query)
+        client.commit()
+    except Exception as e:
+        logging.error("Could not delete entity from Customer Table", e)
+        client.rollback()
+    finally:
+        client.close()
 
 def getCustomerTuple(idvar):
     client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
@@ -1653,4 +1690,5 @@ def getAddressesTable():
 
 # to run in python
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port = 8000)
+
