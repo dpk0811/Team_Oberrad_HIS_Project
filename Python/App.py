@@ -27,7 +27,7 @@ def allowed_file(filename):
 
 # Do hard refresh on web page if something does not loading
 app = Flask(__name__)
-app.secret_key='abc'
+app.secret_key= os.urandom(24)
 app.config['SESSION_COOKIE_HTTPONLY'] = False
 app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -1690,5 +1690,5 @@ def getAddressesTable():
 
 # to run in python
 if __name__ == '__main__':
-    app.run(debug=True, port = 8000)
+    app.run(debug=True)
 
