@@ -1072,8 +1072,7 @@ def insertCustomer(idvar, userpass, hasmembership):
         cursor.execute(query, (idvar, userpass, hasmembership))
         client.commit()
     except Exception as e:
-        #logging.error("Could not add entity to Customer Table")
-        print("error", e)
+        logging.error("Could not add entity to Customer Table")
         client.rollback()
     finally:
         client.close()
