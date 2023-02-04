@@ -8,12 +8,12 @@ import logging
 import shutil
 import re
 
-logging.basicConfig(filename='app.log', filemode='w')
+logging.basicConfig(filename='app.log', filemode='w', level=logging.DEBUG)
 
 # Sameer: Code start
 UPLOAD_FOLDER = 'static/uploads/'
 USERDATA_FOLDER = 'static/UserData/'
-ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'zip' }
+ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg' }
 
 def get_file_ext(filename):
     ext = filename.rsplit('.')
@@ -28,6 +28,7 @@ def allowed_file(filename):
 
 # Do hard refresh on web page if something does not loading
 app = Flask(__name__)
+app.static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['USERDATA_FOLDER'] = USERDATA_FOLDER
 
