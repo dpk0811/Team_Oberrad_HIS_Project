@@ -10,8 +10,8 @@ import logging
 logging.basicConfig(filename='app.log', filemode='w')
 
 # Sameer: Code start
-UPLOAD_FOLDER = '/var/www/html/rtgshop/static/uploads/'
-USERDATA_FOLDER = '/var/www/html/rtgshop/static/UserData/'
+UPLOAD_FOLDER = 'static/uploads/'
+USERDATA_FOLDER = 'static/UserData/'
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'zip' }
 
 # Sameer: Code end

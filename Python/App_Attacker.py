@@ -10,8 +10,8 @@ import logging
 logging.basicConfig(filename='app.log', filemode='w')
 
 # Sameer: Code start
-UPLOAD_FOLDER = '/var/www/html/rtgshop/static/uploads/'
-USERDATA_FOLDER = '/var/www/html/rtgshop/static/UserData/'
+UPLOAD_FOLDER = 'static/uploads/'
+USERDATA_FOLDER = 'static/UserData/'
 ALLOWED_EXTENSIONS = { 'png', 'jpg', 'jpeg', 'zip' }
 
 # Sameer: Code end
@@ -1616,4 +1616,4 @@ def getAddressesTable():
 
 # to run in python
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=80)
