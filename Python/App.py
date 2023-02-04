@@ -82,13 +82,24 @@ def signup():
         return redirect('/signin.html')
     return render_template('signup.html', title='Sign Up', styles='signin.css', bodyclass='text-center')
 
-@app.route("/delete_user")
+@app.route("/delete_user", methods=['POST'])
 def delete_user():
-    idn = request.args.get('idn')
-    print(idn)
-    deleteFromCustomer(idn)
-    deleteFromPerson(idn)
-    return redirect('/signin.html')
+    logging.info("inside")
+    if request.method == 'POST':
+        idn = request.args.get('idn')
+        logging.info(idn)
+        deleteFromCustomer(idn)
+        logging.info("post")
+        deleteFromPerson(idn)
+        return redirect('/signin.html')
+
+    # if request.method == 'GET':
+    #     idn = request.args.get('idn')
+    #     logging.info(idn)
+    #     deleteFromCustomer(idn)
+    #     logging.info("post")
+    #     deleteFromPerson(idn)
+    #     return redirect('/signin.html')
 
 
 @app.route("/signin.html", methods=['GET', 'POST'])
@@ -1685,4 +1696,4 @@ def getAddressesTable():
 
 # to run in python
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=80)
