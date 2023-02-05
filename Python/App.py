@@ -91,6 +91,7 @@ def delete_user():
         deleteFromCustomer(idn)
         logging.info("post")
         deleteFromPerson(idn)
+        session.clear()
         return redirect('/signin.html')
 
     # if request.method == 'GET':
