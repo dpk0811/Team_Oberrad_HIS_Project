@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, send_file, send_from_directory, url_for, session, g
+from flask import Flask, render_template, request, redirect, send_file, send_from_directory, url_for, session, g, abort
 import pymysql.cursors
 import datetime
 import os
@@ -7,6 +7,7 @@ from package import unzipfile
 import logging
 import shutil
 import re
+import secrets
 
 logging.basicConfig(filename='app.log', filemode='w', level=logging.DEBUG)
 
@@ -39,6 +40,8 @@ loggedinid = None
 loggedinname = None
 lastorderid = None
 
+\\csrf prev
+app.secret_key = secrets.token_hex(16)  # generate a random secret key for the app
 
 @app.route("/")
 def home():
@@ -90,6 +93,8 @@ def login():
         email = request.form['email']
         password = request.form['password']
         client = pymysql.connect(host='localhost', user="root", password="", database="eCommerce01")
+        # authenticate user
+        session['csrf_token'] = secrets.token_hex(16)
         try:
             # Check if customer
             cursor = client.cursor()
@@ -358,7 +363,14 @@ def checkout():
                            title='Shopping Cart', styles='checkout.css', bodyclass='bg-light')
 
 
-
+@app.route('/delete_user', methods=['POST'])
+def delete_user():
+    csrf_token = request.form['csrf_token']
+    if csrf_token != session.pop('csrf_token', None):
+        abort(403)  # CSRF token missing or invalid
+    idn = request.args.get('idn')
+    # code to delete user with idn
+    return f"User {idn} has been deleted!"
 
 @app.route("/shop.html", methods=['GET', 'POST'])
 def shop():
